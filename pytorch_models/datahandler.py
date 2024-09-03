@@ -5,10 +5,10 @@
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-import segdataset
+from pytorch_models import segdataset
 
 
-class GetDataloader():
+class GetDataloader:
     def __init__(self, data_dir, train_image_folder, train_mask_folder, test_image_folder, test_mask_folder, fraction,
                  batch_size, n_classes):
         self.data_dir = data_dir

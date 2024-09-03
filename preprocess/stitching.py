@@ -4,7 +4,9 @@
 
 from PIL import Image
 import os
+import numpy as np
 import argparse
+import json
 
 """
 This class will stitch tiles in the input folder into a mosaic of tiles saved as one image in the output folder.
@@ -138,7 +140,7 @@ def stitch(image_dir, output_dir):
                     img = Image.open(lasttile_filepath)
                     lasttile_numcols, lasttile_numrows = img.size
                     print("INFO: last tile dim: %s: %s, %s x %s" % (
-                    filepath, img.mode, lasttile_numcols, lasttile_numrows))
+                        filepath, img.mode, lasttile_numcols, lasttile_numrows))
 
                     # init the final mosaic image
                     img = Image.open(filepath)
@@ -167,6 +169,34 @@ def stitch(image_dir, output_dir):
             out_filepath = os.path.join(output_dir, out_filename)
             print('save mosaic file: ', out_filepath)
             result.save(out_filepath)
+
+
+def stitch_reconstruct(metadata_file, save_path="tiles"):
+    # TODO: Add ability to change maindir path
+    # TODO: encoding must be able to work with prefixes or suffixes
+    with open(os.path.join(save_path, metadata_file), 'r ') as f:
+        metadata_all = json.load(f)
+    for filename, metadata in metadata_all.items():
+        padded_size = metadata["padded_size"]
+        original_size = metadata["original_size"]
+        pad_width = metadata["pad_width"]
+        pad_height = metadata["pad_height"]
+        tiles_info = metadata["tiles_info"]
+        stitched_img = np.zeros((padded_size[1], padded_size[0], 3), dtype=np.uint8)
+
+        for tile_info in tiles_info:
+            tile_image = Image.open(os.path.join(save_path, tile_info["filename"]))
+            tile_array = np.array(tile_image)
+
+            left, upper = tile_info["position"]
+            tile_height, tile_width, = tile_info["size"]
+            stitched_img[upper:upper + tile_height, left:left + tile_width] = tile_array[:tile_height, :tile_width]
+
+        pad_left, pad_right = pad_width
+        pad_top, pad_bottom = pad_height
+        stitched_img = stitched_img[pad_top:-pad_bottom or None, pad_left:-pad_right or None]
+        stitched_img = Image.fromarray(stitched_img)
+        stitched_img.save()
 
 
 def main():
