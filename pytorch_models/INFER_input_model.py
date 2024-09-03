@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import model_analysis
+from pytorch_models import model_analysis
 
 
 # from torchsummaryX import summary as summaryX  #: For asserting model input output layer dimensions

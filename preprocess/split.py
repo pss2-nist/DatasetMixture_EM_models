@@ -43,18 +43,22 @@ def split(image_folder, mask_folder, train_image_folder, train_mask_folder, test
         file = os.path.join(image_folder, fn)
         if ext.lower() in [".tif", ".tiff"]:
             for mask_ext in [".tif", ".tiff"]:
-                mask_file = os.path.join(mask_folder, f"{basename}.{mask_ext}")
+                mask_file = os.path.join(mask_folder, f"{basename}{mask_ext}")
+                print(file, os.path.isfile(file))
+                print(mask_file, os.path.isfile(mask_file))
                 if os.path.isfile(file) and os.path.isfile(mask_file):
                     copyfile(file, "{}/{}".format(train_image_folder, f"{basename}.tif"))
                     copyfile(mask_file, "{}/{}".format(train_mask_folder, f"{basename}.tif"))
-                    break
+                    # break
 
     for fn in test_img_files:
         basename, ext = os.path.splitext(fn)
         file = os.path.join(image_folder, fn)
         if ext.lower() in [".tif", ".tiff"]:
             for mask_ext in [".tif", ".tiff"]:
-                mask_file = os.path.join(mask_folder, f"{basename}.{mask_ext}")
+                mask_file = os.path.join(mask_folder, f"{basename}{mask_ext}")
+                print(file, os.path.isfile(file))
+                print(mask_file, os.path.isfile(mask_file))
                 if os.path.isfile(file) and os.path.isfile(mask_file):
                     copyfile(file, "{}/{}".format(test_image_folder, f"{basename}.tif"))
                     copyfile(mask_file, "{}/{}".format(test_mask_folder, f"{basename}.tif"))
