@@ -104,9 +104,9 @@ def calculate_metrics(batch_tilewise_confusion_matrix, classes, conf_level=0.95)
     miP = miR = miF1 = np.sum(pii)
 
     F1i = divide_nan(2 * pii, (pi_ + p_i))  # ?
-    print(p.shape, pi_.shape, p_i.shape, pii.shape, F1i.shape)  # , pi_, p_i)
-    print(n, F1i.shape)
-    print(pi_ + p_i)
+    # print(p.shape, pi_.shape, p_i.shape, pii.shape, F1i.shape)  # , pi_, p_i)
+    # print(n, F1i.shape)
+    # print(pi_ + p_i)
     a, b = 0, 0
     r = cf.shape[1]  # classes -> replace with actual classes
     #########################################
@@ -140,9 +140,9 @@ def calculate_metrics(batch_tilewise_confusion_matrix, classes, conf_level=0.95)
     maP = np.nansum(divide_nan(pii, pi_)) / actual_classes
     maR = np.nansum(divide_nan(pii, p_i)) / actual_classes
     maF2 = 2 * divide_nan(maP * maR, maP + maR)  # calculated from mean and precision
-    print("miP", miP, "miR", miR, "miF1", miF1, "maP", maP, "maF1", maF1, "maF2", maF2, "actual_classes",
-          actual_classes, "maF1", "np.sum(F1i)", np.sum(F1i))  # , pi_, p_i)
-    print("n", n, "r", r)
+    # print("miP", miP, "miR", miR, "miF1", miF1, "maP", maP, "maF1", maF1, "maF2", maF2, "actual_classes",
+    #       actual_classes, "maF1", "np.sum(F1i)", np.sum(F1i))  # , pi_, p_i)
+    # print("n", n, "r", r)
     # for i in range(r):
     #     jj = np.delete(np.arange(r), i)
     #     for j in jj:
