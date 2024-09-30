@@ -1,24 +1,23 @@
 # IEEE Format Citation:
 # M. S. Minhas, “Transfer Learning for Semantic Segmentation using PyTorch DeepLab v3,” GitHub.com/msminhas93, 12-Sep-2019. [Online]. Available: https://github.com/msminhas93/DeepLabv3FineTuning.
 # Link: https://towardsdatascience.com/transfer-learning-for-segmentation-using-deeplabv3-in-pytorch-f770863d6a42
+import csv
+import os
+import time
+import argparse
+from pathlib import Path
+from tqdm import tqdm
+from pytorch_models.metrics import *
+
+from pytorch_classification_models.gpu_utilization import write_header
+from pytorch_classification_models.gpu_utilization import record
+from pytorch_models.datahandler import GetDataloader
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 from torchvision.models.segmentation.fcn import FCNHead
 from torchvision.models.segmentation.lraspp import LRASPPHead, LRASPP
 from torchvision.models.mobilenetv3 import MobileNetV3, _mobilenet_v3_conf
 
 from torchvision import models, transforms
-from pytorch_models.metrics import *
-import csv
-import os
-import time
-import argparse
-import torch
-from pathlib import Path
-from tqdm import tqdm
-from pytorch_classification_models.gpu_utilization import write_header
-from pytorch_classification_models.gpu_utilization import record
-# from pytorch_models.SEM_Dataset import GetDataloader
-from pytorch_models.datahandler import GetDataloader
 
 
 # TODO: auto gpu or cpu
@@ -111,7 +110,6 @@ def train_model(model, criterion, criterion_test, dataloaders, optimizer, bpath,
 
     gpu_metric_filename = os.path.join(gpu_metric_folder, gpu_metric_filename)
     print('INFO: pytorch output gpu utilization file: ', gpu_metric_filename)
-    # gpu_utilization.write_header(gpu_metric_filename)
     write_header(gpu_metric_filename)
 
     start_time = time.time()
@@ -125,6 +123,8 @@ def train_model(model, criterion, criterion_test, dataloaders, optimizer, bpath,
         batchsummary['Pretrained'] = pretrained
         batchsummary['LR'] = lr
         batchsummary['Batch_Size'] = bs
+        torch.cuda.empty_cache()
+        torch.cuda.reset_max_memory_allocated()
         if not model.training:
             model.train()
         for sample in tqdm(iter(dataloaders['Train'])):
@@ -240,7 +240,7 @@ def call_main(parse_these_args=None):
     parser.add_argument('--learningRate', type=float, help='')
     parser.add_argument('--metricsfile', type=str, help='')
     parser.add_argument('--modelName', type=str, help='')
-    parser.add_argument('--pretrained', type=bool, help='')
+    parser.add_argument('--pretrained', type=str, help='')
     parser.add_argument('--classes', type=int, help='')
     # parser.add_argument('--inputchannels', type=int, help='')
     args = None
@@ -344,8 +344,11 @@ def call_main(parse_these_args=None):
         print(args.trainImages, args.trainMasks, args.testImages, args.testMasks)
         print('ERROR: could not find train or test data len(train):', len(seg_dataloader['Train']))
         print('len(test):', len(seg_dataloader['Test']))
-
     pretrained = True
+    print("pretraining: ", args.pretrained, type(args.pretrained), args.pretrained == 'True',
+          args.pretrained == True)
+    if args.pretrained == 'True':
+        pretrained = True
     if args.pretrained == 'False':
         pretrained = False
     # TODO: also dynamically choose input_channels

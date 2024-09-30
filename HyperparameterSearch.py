@@ -38,8 +38,11 @@ Objective:
 import argparse
 import os
 import sys
-from sklearn.model_selection import GridSearchCV
-from sklearn.base import BaseEstimator
+
+import torch.cuda
+
+# from sklearn.model_selection import GridSearchCV
+# from sklearn.base import BaseEstimator
 from pytorch_models.SEM_train import *
 from pytorch_models.SEM_Dataset import *
 from runmodels import *
@@ -124,6 +127,7 @@ def create_parser():
     return parser
 
 
+# USE: windows->  set 'PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512'
 def test_parser():
     parser = create_parser()
     path1 = "/mnt/isgnas/home/pss2/data/EM-Vladar/DatadrivenEM/Synthetic_DDS"
@@ -144,14 +148,20 @@ def test_parser():
         mask_input_folder = "Mask/designed"
         xPieces = 5
         yPieces = 5
-        # tile_and_split(root_folder, image_input_folder, mask_input_folder, xPieces, yPieces)
-        run_many_models(data=root_folder, learning_rates=None, are_pretrained=None)
-    # autotile(datasets, output_dir=path_output, metadata_file_name="tiling_metadata.json")
-    # generate actual mixtures and metadata
-    # generate_mixtures() - only for datasetmixture
+        # if path.__contains__("DDS"):
+        #     run_many_models(data=root_folder, learning_rates=[0.001], are_pretrained=[True], batchsize=100)
+        # if path.__contains__("PBS"):
+        #     run_many_models(data=root_folder, learning_rates=[0.01], are_pretrained=[False], batchsize=100)
 
-    # stitch(metadata_file_name="tiling_metadata.json")
-    # gridsearch parameters within each mixture
+
+# tile_and_split(root_folder, image_input_folder, mask_input_folder, xPieces, yPieces)
+    run_many_models(data=root_folder, learning_rates=None, are_pretrained=None, batchsize=100)
+# autotile(datasets, output_dir=path_output, metadata_file_name="tiling_metadata.json")
+# generate actual mixtures and metadata
+# generate_mixtures() - only for datasetmixture
+
+# stitch(metadata_file_name="tiling_metadata.json")
+# gridsearch parameters within each mixture
 
 
 def main():
@@ -159,5 +169,16 @@ def main():
 
 
 if __name__ == "__main__":
-    test_parser()
+    # os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+    # os.environ['PYTORCH_NO_CUDA_MEMORY_CACHING'] = '1'
+    print(f"Max memory allocated{torch.cuda.max_memory_allocated() / 1024 ** 2} MiB")
+    torch.cuda.empty_cache()
+    torch.cuda.reset_max_memory_allocated()
+    # torch.cuda.memory._record_memory_history()
+    try:
+        test_parser()
+    except Exception as e:
+        print(e)
+    # torch.cuda.memory._dump_snapshot("my_snapshot.pickle")
+
     # main()
