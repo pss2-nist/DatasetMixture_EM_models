@@ -21,13 +21,21 @@ def get_mse_batch(predictions, masks):
 
 
 def confusionmat(predictions, masks, classes):
-    # print(f"predictions: {predictions.shape}, masks: {masks.shape}")
+    print(f"predictions: {predictions.shape}, masks: {masks.shape}")
+    print(f"predictions: {type(predictions)}, masks: {type(masks)}")
     matrix = np.zeros((classes, classes))
+    pred, mask = None, None
     for i in range(predictions.shape[0]):  # batch
-        pred = torch.argmax(predictions[i], 0)
-        pred = pred.cpu().detach().numpy().astype(np.uint8)
-        mask = torch.squeeze(masks[i], 0)
-        mask = mask.cpu().detach().numpy().astype(np.uint8)
+        try:
+            pred = torch.argmax(predictions[i], 0)
+            pred = pred.cpu().detach().numpy().astype(np.uint8)
+        except:
+            pred = np.argmax(predictions[i], 0)
+        try:
+            mask = torch.squeeze(masks[i], 0)
+            mask = mask.cpu().detach().numpy().astype(np.uint8)
+        except:
+            mask = np.squeeze(masks[i], 0)
         pred_flat = pred.flatten()
         mask_flat = mask.flatten()
         assert pred.shape == mask.shape, f"Dimensions mismatch predicted: {pred.shape}, Mask: {mask.shape}"
@@ -88,7 +96,7 @@ def calculate_metrics(batch_tilewise_confusion_matrix, classes, conf_level=0.95)
     cf = np.sum(batch_tilewise_confusion_matrix, axis=0)
 
     # initialize
-    total_f1, total_precision, recall_scores, total_jaccard = 0, 0, 0, 0
+    total_f1, total_precision, total_recall, total_jaccard = 0, 0, 0, 0
     micro_f1, micro_precision, micro_recall, micro_jaccard = 0, 0, 0, 0
     # predicted_positives = np.sum(cf, axis=1).tolist()  # tp + fp
     # actual_positives = np.sum(cf, axis=0).tolist()  # tp + fn
@@ -111,6 +119,7 @@ def calculate_metrics(batch_tilewise_confusion_matrix, classes, conf_level=0.95)
     r = cf.shape[1]  # classes -> replace with actual classes
     #########################################
     for i in range(classes):
+        # Calculate properties per class
         tp = cf[i][i]
         fp = np.sum(cf[:, i]) - tp
         fn = np.sum(cf[i, :]) - tp
@@ -118,7 +127,7 @@ def calculate_metrics(batch_tilewise_confusion_matrix, classes, conf_level=0.95)
         micro_fp += fp
         micro_fn += fn
         # tn = np.sum(cf) - (tp + fp + fn)
-        if tp + fp + fn > 0:  # class is predicted or exists in gt
+        if tp + fp + fn > 0:  # class is valid: predicted or exists in gt
             actual_classes += 1
             c_precision = tp / (tp + fp) if (tp + fp) else 0
             c_recall = tp / (tp + fn) if (tp + fn) else 0
@@ -128,6 +137,7 @@ def calculate_metrics(batch_tilewise_confusion_matrix, classes, conf_level=0.95)
             total_f1 += c_f1
             total_precision += c_precision
             total_jaccard += c_jaccard
+            total_recall += c_recall
             # only calculating over actual classes
             a += divide_nan(F1i[i] * (pi_[i] + p_i[i] - 2 * pii[i]), (pi_[i] + p_i[i]) ** 2) * (
                     (divide_nan(pi_[i] + p_i[i] - 2 * pii[i], pi_ + p_i)) + F1i[i] / 2)
@@ -140,8 +150,8 @@ def calculate_metrics(batch_tilewise_confusion_matrix, classes, conf_level=0.95)
     maP = np.nansum(divide_nan(pii, pi_)) / actual_classes
     maR = np.nansum(divide_nan(pii, p_i)) / actual_classes
     maF2 = 2 * divide_nan(maP * maR, maP + maR)  # calculated from mean and precision
-    # print("miP", miP, "miR", miR, "miF1", miF1, "maP", maP, "maF1", maF1, "maF2", maF2, "actual_classes",
-    #       actual_classes, "maF1", "np.sum(F1i)", np.sum(F1i))  # , pi_, p_i)
+    print("miP", miP, "miR", miR, "miF1", miF1, "maP", maP, "maF1", maF1, "maF2", maF2, "actual_classes",
+          actual_classes, "maF1", "np.sum(F1i)", np.sum(F1i))  # , pi_, p_i)
     # print("n", n, "r", r)
     # for i in range(r):
     #     jj = np.delete(np.arange(r), i)
@@ -162,10 +172,10 @@ def calculate_metrics(batch_tilewise_confusion_matrix, classes, conf_level=0.95)
         'Lower': [miF1_ci[0], maF1_ci[0]],
         'Upper': [miF1_ci[1], maF1_ci[1]]
     }
-    print(confidences)
+    # print(confidences)
     #############################################################################
     macro_precision = total_precision / actual_classes if actual_classes else 0
-    macro_recall = recall_scores / actual_classes if actual_classes else 0
+    macro_recall = total_recall / actual_classes if actual_classes else 0
     macro_f1 = total_f1 / actual_classes if actual_classes else 0
     macro_jaccard = total_jaccard / actual_classes if actual_classes else 0
 
@@ -174,20 +184,8 @@ def calculate_metrics(batch_tilewise_confusion_matrix, classes, conf_level=0.95)
     micro_f1 = 2 * (micro_precision * micro_recall) / (micro_recall + micro_precision) if (
             micro_precision + micro_recall) else 0
     micro_jaccard = micro_tp / (micro_tp + micro_fp + micro_fn) if (micro_tp + micro_fp + micro_fn) else 0
-
+    print("macro_precision", macro_precision, "macro_recall", macro_recall, "macro_f1", macro_f1, "macro_jaccard",
+          macro_jaccard, "micro_precision", micro_precision, "micro_recall", micro_recall, "micro_f1", micro_f1,
+          "micro_jaccard", micro_jaccard, "confidences", confidences, "actual_classes", actual_classes)
     return macro_precision, macro_recall, macro_f1, macro_jaccard, micro_precision, micro_recall, micro_f1, micro_jaccard, confidences
-
-# def get_jaccard_batch(predictions, masks):
-#     total_jaccard = 0
-#     length = predictions.shape[0]
-#     for i in range(predictions.shape[0]):
-#         pred = torch.argmax(predictions[i], 0)
-#         pred = pred.cpu().detach().numpy().astype(np.uint8)
-#         mask = torch.squeeze(masks[i], 0)
-#         mask = mask.cpu().detach().numpy().astype(np.uint8)
-#         # print("maskshape", mask.shape,"predshape", pred.shape)
-#         jaccard_coeff = jaccard_score(mask.flatten(), pred.flatten(), average='micro')
-#         #  https://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient
-#         total_jaccard += jaccard_coeff
-#     avg_jaccard = total_jaccard / length
-#     return avg_jaccard
+    # return maP, maR, maF1, macro_jaccard, miP, miR, miF1, micro_jaccard, confidences

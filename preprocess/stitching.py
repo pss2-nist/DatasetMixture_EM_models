@@ -4,9 +4,10 @@
 
 from PIL import Image
 import os
-import numpy as np
 import argparse
 import json
+import numpy as np
+import skimage
 
 """
 This class will stitch tiles in the input folder into a mosaic of tiles saved as one image in the output folder.
@@ -22,7 +23,30 @@ __email__   = "peter.bajcsy@nist.gov", "pushkar.sathe@nist.gov"
 """
 
 
-def stitch_subfolders(image_dir, output_dir):
+def open_image(imagepath):
+    success = False
+    read_image = None
+    try:
+        read_image = Image.open(imagepath)
+        success = True
+    except Exception as e:
+        pass
+
+    if not success:
+        try:
+            img_sk = skimage.io.imread(imagepath)
+            read_image = Image.fromarray(np.uint8(img_sk))
+            success = True
+            if read_image.mode != 'RGB':
+                read_image.convert('RGB')
+        except Exception as e:
+            pass
+    if not success:
+        print("Failed to read image")
+    return read_image
+
+
+def stitch_subfolders(image_dir, output_dir, tomo=None):
     # create the output directory if needed
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -55,57 +79,39 @@ def stitch(image_dir, output_dir):
     # estimate the maximum number of horizontal and vertical tiles for each mosaic image
     xTilePos = -1
     yTilePos = -1
+    xTilePoss = []
+    yTilePoss = []
     file_extension = '.tif'
     for filename in os.listdir(image_dir):
         filepath = os.path.join(image_dir, filename)
-        print('filename:', filename)
+        # print('filename:', filename, flush=True)
         if not os.path.isfile(filepath):
             continue
 
         # input filename: <name>-yPieces-xPieces.suffix OR
         # input filename: <name>-zPieces-yPieces-xPieces.suffix
         # input filename: pred_well1.hrf48.red-1-0.tif
-        basename = filename.split('-')
-        img_name = basename[0]
-        yTilePos = basename[1]
-
-        #  this piece of code takes care of the old version P1-W1-TOM_E02_F001_DNA_RPE00000-0.tif with missing - before the yTilePos
-        # pred_P1-W1-TOM_E02_F001_DNA_RPE00000-0.tif
-        if len(basename) > 2:
-            yTilePos = basename[len(basename) - 2][-1]
-            img_name = ''
-            for i in range(0, len(basename) - 2):
-                img_name += basename[i] + '-'
-
-            img_name = img_name + basename[len(basename) - 2][0:len(basename[len(basename) - 2]) - 1]
-
-        temp = basename[len(basename) - 1].split('.')
-        if len(temp) > 1:
-            file_extension = temp[1]
-            xTilePos = temp[0]
+        basename, ext = os.path.splitext(filename)
+        if not ext.__contains__('.tif'):
+            continue
         else:
-            print('ERROR: could not detect file extension (set to .tif)')
-            file_extension = '.tif'
-            xTilePos = temp[0]
+            file_extension = ext
+        bn_u = basename.split("_")
+        img_name, xypos = "_".join(bn_u[:-1]), bn_u[-1]
+        yTilePosl, xTilePosl = xypos.split("-")
+        xTilePos = int("".join(xTilePosl))
+        yTilePos = int("".join(yTilePosl))
+        xTilePoss.append(xTilePos)
+        yTilePoss.append(yTilePos)
+        # i = 0
+        mosaic_image_array.append(img_name)
+    # print(xTilePoss)
+    # print(yTilePoss)
+    max_xTilePos.append(max(xTilePoss))
+    max_yTilePos.append(max(yTilePoss))
 
-        print('xTilePos:', xTilePos, ' yTilePos:', yTilePos, ' img_name:', img_name)
-        i = 0
-        flag_inset = False
-        for mosaic in mosaic_image_array:
-            if img_name == mosaic:
-                flag_inset = True
-            else:
-                if int(xTilePos) > int(max_xTilePos[i]):
-                    max_xTilePos[i] = xTilePos
-                if int(yTilePos) > int(max_yTilePos[i]):
-                    max_yTilePos[i] = yTilePos
-            i += 1
-
-        if not flag_inset:
-            mosaic_image_array.append(img_name)
-            max_xTilePos.append(xTilePos)
-            max_yTilePos.append(yTilePos)
-
+    # print('max_xTilePos:', max_xTilePos, ' max_yTilePos:', max_yTilePos, ' mosaic_image_array:', mosaic_image_array)
+    mosaic_image_array = list(set(mosaic_image_array))  # list of all unique file names after stitching?
     print('max_xTilePos:', max_xTilePos, ' max_yTilePos:', max_yTilePos, ' mosaic_image_array:', mosaic_image_array)
 
     # step 2: place all tiles in one collection into its corresponding positions of a mosaic image
@@ -115,13 +121,14 @@ def stitch(image_dir, output_dir):
         result = None
         finalWidth = -1
         finalHeight = -1
+
         for i in range(0, int(max_yTilePos[k]) + 1):
             for j in range(0, int(max_xTilePos[k]) + 1):
                 # this takes care of the old version of naming convention (see above)
                 if len(basename) > 2:
-                    filename = file + str(i) + "-" + str(j) + "." + file_extension
+                    filename = file + "_" + str(i) + "-" + str(j) + file_extension
                 else:
-                    filename = file + "-" + str(i) + "-" + str(j) + "." + file_extension
+                    filename = file + "-" + str(i) + "-" + str(j) + file_extension
 
                 filepath = os.path.join(image_dir, filename)
                 print('input filepath:', filepath)
@@ -130,22 +137,20 @@ def stitch(image_dir, output_dir):
                 if not file_exists:
                     print('INFO: missing a tile in the grid: column=', j, ' row=', i)
                     continue
-
+                img = open_image(filepath)
+                numcols, numrows = img.size  # FOR NORMAL?
                 if finalWidth == -1 or finalHeight == -1:
                     # check the last tile for an odd size due to tiling algorithm
-                    lasttile_filename = file + str(int(max_yTilePos[k])) + "-" + str(
-                        int(max_xTilePos[k])) + "." + file_extension
+                    lasttile_filename = file + "_" + str(int(max_yTilePos[k])) + "-" + str(
+                        int(max_xTilePos[k])) + file_extension
                     lasttile_filepath = os.path.join(image_dir, lasttile_filename)
                     print('lasttile_filepath:', lasttile_filepath)
-                    img = Image.open(lasttile_filepath)
+                    img = open_image(lasttile_filepath)
                     lasttile_numcols, lasttile_numrows = img.size
                     print("INFO: last tile dim: %s: %s, %s x %s" % (
                         filepath, img.mode, lasttile_numcols, lasttile_numrows))
 
                     # init the final mosaic image
-                    img = Image.open(filepath)
-
-                    numcols, numrows = img.size
                     print("INFO: regular tile dim: %s: %s, %s x %s" % (filepath, img.mode, numcols, numrows))
 
                     finalWidth = numcols * (int(max_xTilePos[k])) + lasttile_numcols
@@ -157,15 +162,14 @@ def stitch(image_dir, output_dir):
                     result = Image.new(mode=img.mode, size=(finalWidth, finalHeight))
                     result.paste(img, (j * numcols, i * numrows))
                 else:
-                    img = Image.open(filepath)
+                    img = open_image(filepath)
                     result.paste(img, (j * numcols, i * numrows))
-
-        if not result == None:
+        if result is not None:
             # step 3: save the stitched image
             if file.endswith('-'):
                 file = file[0:len(file) - 1]
 
-            out_filename = file + "." + file_extension
+            out_filename = file + file_extension
             out_filepath = os.path.join(output_dir, out_filename)
             print('save mosaic file: ', out_filepath)
             result.save(out_filepath)

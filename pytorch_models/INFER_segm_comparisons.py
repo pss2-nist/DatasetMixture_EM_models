@@ -185,6 +185,16 @@ def metrics_masks(gt_file_name, pred_mask, gt_mask, num_classes, output_dir):
     return precision_score, recall_score, accuracy_score, f1_score, jaccard_coeff, dice_coeff, mse_coeff, labelwise_dice, adjrand
 
 
+def get_mse(gt_mask, pred_mask):
+    mse_coeff = mean_squared_error(gt_mask.flatten(), pred_mask.flatten())
+    return mse_coeff
+
+
+def get_adj_rand(gt_mask, pred_mask):
+    adjrand = adjusted_rand_score(labels_true=gt_mask.flatten(), labels_pred=pred_mask.flatten())
+    return adjrand
+
+
 def get_pair_confusion_matrix(labels_true, labels_pred):
     CM = pair_confusion_matrix(labels_true, labels_pred)
     CM = CM.astype(np.uint16)

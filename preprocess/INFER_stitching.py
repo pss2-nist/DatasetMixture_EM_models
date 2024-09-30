@@ -93,15 +93,21 @@ def stitch(image_dir, output_dir):
     file_extension = '.tif'
     for filename in os.listdir(image_dir):
         filepath = os.path.join(image_dir, filename)
-        # print('filename:', filename)
+        print('filename:', filename)
         if not os.path.isfile(filepath):
             continue
 
         # input filename: pred_CG1D_PS_MLMeasured_1_0-0.tif
 
         basename, ext = os.path.splitext(filename)
+        if not ext.__contains__('.tif'):
+            continue
+        else:
+            file_extension = ext
         bn_u = basename.split("_")
         img_name, xypos = "_".join(bn_u[:-1]), bn_u[-1]
+        # print(filepath)
+        # print(img_name, xypos)
         yTilePosl, xTilePosl = xypos.split("-")
         xTilePos = int("".join(xTilePosl))
         yTilePos = int("".join(yTilePosl))
@@ -132,15 +138,15 @@ def stitch(image_dir, output_dir):
                 filename = file + "_" + str(i) + "-" + str(j) + file_extension
 
                 filepath = os.path.join(image_dir, filename)
-                # print('input filename:', filename)
+                # print('input filename:', filename, flush=True)
 
                 file_exists = os.path.exists(filepath)
                 if not file_exists:
                     print('INFO: missing a tile in the grid: column=', j, ' row=', i)
                     continue
                 img = open_image(filepath)
-                # numcols, numrows = img.size #FOR NORMAL?
-                numrows, numcols = img.size  # FOR LSTM
+                numcols, numrows = img.size  # FOR NORMAL?
+                # numrows, numcols = img.size  # FOR LSTM
                 if finalWidth == -1 or finalHeight == -1:
                     # check the last tile for an odd size due to tiling algorithm
                     lasttile_filename = file + "_" + str(int(max_yTilePos[k])) + "-" + str(

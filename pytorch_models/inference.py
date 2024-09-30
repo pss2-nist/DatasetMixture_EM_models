@@ -8,7 +8,7 @@ import time
 
 from numpy.compat import unicode
 
-import segdataset
+from pytorch_models import segdataset
 
 if sys.version_info[0] < 3:
     raise Exception('Python3 required')
@@ -20,7 +20,7 @@ import skimage
 import skimage.transform
 import argparse
 import os
-import segm_comparisons as segm_comp
+from pytorch_models import segm_comparisons as segm_comp
 
 from pathlib import Path
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead

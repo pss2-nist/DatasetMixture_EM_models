@@ -5,22 +5,25 @@
 import csv
 import time
 import warnings
-import INFER_Dataset
-import numpy as np
-import torch
+# from pytorch_models import SEM_Dataset
+# from pytorch_models import segdataset
 import skimage.io
 import skimage
 import skimage.transform
 import argparse
-import model_analysis
+from sklearn.metrics import adjusted_rand_score
+# from pytorch_models import model_analysis
 import os
-from metrics import *
-import INFER_segm_comparisons as segm_comp
+
+from pytorch_models import segdataset
+from pytorch_models.metrics import *
+import pytorch_models.INFER_segm_comparisons as segm_comp
 from pathlib import Path
-from torchvision.models.segmentation.deeplabv3 import DeepLabHead
-from torchvision import models
-from torchvision import transforms
-from PIL import Image
+
+# from torchvision.models.segmentation.deeplabv3 import DeepLabHead
+# from torchvision import models
+# from torchvision import transforms
+# from PIL import Image
 
 warnings.filterwarnings("ignore")
 
@@ -29,7 +32,6 @@ def format_image(x):
     # reshape into tensor (CHW)
     x = np.transpose(x, [2, 0, 1])
     return x
-
 
 
 ''' 
@@ -48,32 +50,34 @@ def inference(modelFilepath, image_filepath, output_dir):
 
     for i in range(len(file_array)):
         image = skimage.io.imread(file_array[i])
-        # image = np.expand_dims(image, 0)
-        # image = np.concatenate((image, image, image), axis=0)
-        if INFER_Dataset.INFERSegmentationDataset.use_normalization == "zscore_normalize":
-            image = INFER_Dataset.INFERSegmentationDataset.zscore_normalize(image)
-        else:
-            image = image.astype(np.float32)
-            pass
+        image = np.expand_dims(image, 0)
+        image = np.concatenate((image, image, image), axis=0)
+        # This may need to be reverted later
+        # image = image.astype(np.float32)
+        image = segdataset.SegmentationDataset.zscore_normalize(image)
+
         img = torch.from_numpy(image)
         img = torch.unsqueeze(img, 0)
         img = img.type(torch.cuda.FloatTensor)
+        print(f"IMGSHAPE: {img.shape}")
         pred = model(img)
-        pred = pred
+        pred = pred['out']
 
         pred = torch.squeeze(pred, 0)
         pred = torch.argmax(pred, 0)
         pred = pred.cpu().detach().numpy().astype(np.uint8)
         basename = os.path.basename(file_array[i])
         output_fullpath = str(output_dir) + "/pred_{}".format(basename)
+        print('output_fullpath:', output_fullpath)
         skimage.io.imsave(output_fullpath, pred)
+
 
 '''
 run inference and compute the accuracy against the ground truth mask
 '''
 
 
-def inference_withmask(modelFilepath, image_filepath, mask_filepath, num_classes, output_dir, use_avgs=False):
+def inference_withmask(modelFilepath, image_filepath, mask_filepath, num_classes, output_dir, use_avgs=True):
     start_time = time.time()
     print(f"Use averages = {use_avgs}")
     model = torch.load(modelFilepath)
@@ -88,10 +92,9 @@ def inference_withmask(modelFilepath, image_filepath, mask_filepath, num_classes
         mfilepath = os.path.join(mask_filepath, mfilename)
         mask_file_array.append(mfilepath)
 
-    avg_macro_precision, avg_adjusted_rand, avg_macro_recall, avg_accuracy_score = 0.0, 0.0, 0.0, 0.0
+    avg_macro_precision, avg_adjusted_rand, avg_macro_recall = 0.0, 0.0, 0.0
     avg_micro_precision, avg_micro_recall, avg_accuracy_score = 0.0, 0.0, 0.0
     avg_macro_f1, avg_micro_f1, avg_mse = 0.0, 0.0, 0.0
-    avg_macro_recall_score, avg_micro_recall_score = 0.0, 0.0
     avg_macro_jaccard, avg_micro_jaccard = 0.0, 0.0
     avg_confidence_sd_micro, avg_confidences_sd_macro = 0.0, 0.0
     labelwise_dice = {}  # empty dictionary for all labels
@@ -116,22 +119,20 @@ def inference_withmask(modelFilepath, image_filepath, mask_filepath, num_classes
 
         # load intensity image
         image = skimage.io.imread(file_array[i])
+        image = np.expand_dims(image, 0)
+        image = np.concatenate((image, image, image), axis=0)
 
-        image = image.astype(np.float32)
-        if INFER_Dataset.INFERSegmentationDataset.use_normalization == "zscore_normalize":
-            image = INFER_Dataset.INFERSegmentationDataset.zscore_normalize(image)
-
+        # image = image.astype(np.float32)
+        image = segdataset.SegmentationDataset.zscore_normalize(image)
         img = torch.from_numpy(image)
         img = torch.unsqueeze(img, 0)
         img = img.type(torch.cuda.FloatTensor)
-        layers = model_analysis.get_layerweights(model)
         pred = model(img)
-        layer_len = len(layers)
-        assert layer_len > 0, "layers list is empty"
-        if layer_len > 1:
-            print(layer_len)
-        layer = layers.pop()
+        print(type(pred))
+        pred = pred['out']
+        print(pred.shape, type(pred))
         pred = torch.squeeze(pred, 0)
+        print(pred.shape, type(pred))
         pred = torch.argmax(pred, 0)
         pred = pred.cpu().detach().numpy().astype(np.uint8)
         gt_mask = skimage.io.imread(mask_file_array[match_index]).astype(np.uint8)
@@ -141,17 +142,17 @@ def inference_withmask(modelFilepath, image_filepath, mask_filepath, num_classes
 
         macro_precision, macro_recall, macro_f1, macro_jaccard, micro_precision, micro_recall, micro_f1, micro_jaccard, confidences = calculate_metrics(
             matrices, num_classes)
+        adjrand = segm_comp.get_adj_rand(gt_mask, pred)
+        mse = segm_comp.get_mse(gt_mask, pred)
         if use_avgs:
-            precision_score, recall_score, accuracy_score, f1_score, jaccard_score, dice_score, mse, _, adjrand = \
-                segm_comp.metrics_masks(mask_file_array[match_index], pred, gt_mask, num_classes, output_dir)
             avg_macro_precision += macro_precision
             avg_micro_precision += micro_precision
             avg_confidence_sd_micro += confidences['SD'][0]
             avg_confidences_sd_macro += confidences['SD'][1]
             avg_macro_f1 += macro_f1
             avg_micro_f1 += micro_f1
-            avg_macro_recall_score += macro_recall
-            avg_micro_recall_score += micro_recall
+            avg_macro_recall += macro_recall
+            avg_micro_recall += micro_recall
             avg_macro_jaccard += macro_jaccard
             avg_micro_jaccard += micro_jaccard
             avg_adjusted_rand += adjrand
@@ -176,25 +177,15 @@ def inference_withmask(modelFilepath, image_filepath, mask_filepath, num_classes
         # TODO disabled for INFER numerical evaluations - should be enabled in the future
         basename = os.path.basename(file_array[i])
         output_fullpath = str(output_dir) + "/pred_{}".format(basename)
-        # outgparent = os.path.dirname()
-        outparent, outbasename = os.path.split(output_dir)
-        fe_dir = outparent + f"_fe/"
-        if not os.path.exists(fe_dir):
-            os.mkdir(fe_dir)
-        fe_subdir = fe_dir + f"/{outbasename}"
-        if not os.path.exists(fe_subdir):
-            os.mkdir(fe_subdir)
-        fe_fullpath = f"/{fe_subdir}/fe_{basename}"
-        # print('done:', basename, end='\t')
         skimage.io.imsave(output_fullpath, pred)
-        skimage.io.imsave(fe_fullpath, layer)
+        print("len(file_array)", len(file_array))
     if len(file_array) > 0:
         MCM_combined, sorted_labels = segm_comp.getMCMfromDict(labelwiseMCM=labelwise_MCM)
         if use_avgs:
             avg_macro_precision /= len(file_array)
-            avg_micro_jaccard /= len(file_array)
-            avg_macro_recall_score /= len(file_array)
-            avg_micro_recall_score /= len(file_array)
+            avg_micro_precision /= len(file_array)
+            avg_macro_recall /= len(file_array)
+            avg_micro_recall /= len(file_array)
             avg_accuracy_score /= len(file_array)
             avg_macro_f1 /= len(file_array)
             avg_micro_f1 /= len(file_array)
@@ -204,8 +195,7 @@ def inference_withmask(modelFilepath, image_filepath, mask_filepath, num_classes
             avg_adjusted_rand /= len(file_array)
 
         else:
-
-            avg_accuracy_score, avg_precision_score, avg_recall_score, avg_f1_score = segm_comp.cumulative_multilabel_aprf(
+            avg_accuracy_score, avg_precision, avg_recall, avg_f1 = segm_comp.cumulative_multilabel_aprf(
                 PCM)
             avg_dice = segm_comp.cumulative_multilabel_dice(PCM)
             avg_jaccard = segm_comp.cumulative_multilabel_jaccard(PCM)
@@ -221,12 +211,12 @@ def inference_withmask(modelFilepath, image_filepath, mask_filepath, num_classes
     dicelist = sorted(list(labelwise_dice.keys()))
     # fieldnames = ['GTMask_filepath', 'PredMask_filepath', 'Precision', 'Recall', 'Accuracy', 'F1-Score', 'Dice',
     #               'Jaccard', 'MSE', "Adjusted Rand", 'Exec_time [seconds]'] + dicelist
-    fieldnames = ['GTMask_filepath', 'PredMask_filepath', 'Model', 'Pretrained', 'LR', 'Batch_Size', 'epoch', 'Seconds',
-                  'Train_loss', 'Test_loss', 'Per-Pixel Accuracy', 'Precision_macro', 'Precision_micro', 'Recall_macro',
-                  'Recall_micro', 'Dice_macro', 'Dice_micro', 'Jaccard_macro', 'Jaccard_micro', 'confidence_sd_macro',
-                  'confidence_sd_micro', 'MSE', "Adjusted Rand", 'Exec_time [seconds]'] + dicelist
+    fieldnames = ['GTMask_filepath', 'PredMask_filepath', 'Precision_macro', 'Precision_micro', 'Recall_macro',
+                  'Recall_micro', 'Per-Pixel Accuracy', 'Dice_macro', 'Dice_micro', 'Jaccard_macro', 'Jaccard_micro',
+                  'confidence_sd_macro', 'confidence_sd_micro', 'MSE', "Adjusted Rand",
+                  'Exec_time [seconds]'] + dicelist
     metrics_name = '_metrics.csv'
-    print(f"DICELIST: {dicelist}")
+    # print(f"DICELIST: {dicelist}")
     path_to_file = output_dir + metrics_name
     print('INFO: summary output stats:', path_to_file)
     # if not os.path.exists(path_to_file):
@@ -265,7 +255,6 @@ def inference_withmask(modelFilepath, image_filepath, mask_filepath, num_classes
     with open(path_to_file, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writerow(batchsummary)
-
 
 
 def main():

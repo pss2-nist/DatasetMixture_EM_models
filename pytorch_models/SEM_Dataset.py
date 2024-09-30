@@ -41,6 +41,11 @@ def return_images_from_paths(image_paths, astype=np.float32):
 
 
 class SEMDataset(VisionDataset):
+    """A PyTorch dataset for image segmentation task. The dataset is compatible with torchvision transforms.
+     The transforms passed would be applied to both the Images and Masks.
+     """
+    use_normalization = None
+
     def __init__(self, root, train_image_folder, train_mask_folder, test_image_folder, test_mask_folder,
                  fraction, masks, transforms=None, target_transform=None, subset=None, n_classes=4):
         super(SEMDataset, self).__init__(root, transforms=transforms, target_transform=target_transform)
@@ -48,11 +53,15 @@ class SEMDataset(VisionDataset):
         # self.data_paths = data_paths
         self.masks = masks
         self.transforms = transforms
-        # self.fraction = fraction
-        # self.train_image_names = sorted(train_image_folder_path.glob("*"))
-        # self.train_mask_names = sorted(train_mask_folder_path.glob("*"))
-        # self.test_image_names = sorted(test_image_folder_path.glob("*"))
-        # self.test_mask_names = sorted(test_mask_folder_path.glob("*"))
+        train_image_folder_path = Path(self.root) / train_image_folder
+        train_mask_folder_path = Path(self.root) / train_mask_folder
+        test_image_folder_path = Path(self.root) / test_image_folder
+        test_mask_folder_path = Path(self.root) / test_mask_folder
+        self.fraction = fraction
+        self.train_image_names = sorted(train_image_folder_path.glob("*"))
+        self.train_mask_names = sorted(train_mask_folder_path.glob("*"))
+        self.test_image_names = sorted(test_image_folder_path.glob("*"))
+        self.test_mask_names = sorted(test_mask_folder_path.glob("*"))
         if subset == "Train":
             weights = [0] * n_classes
             self.image_names = self.train_image_names
@@ -61,9 +70,11 @@ class SEMDataset(VisionDataset):
                 image = np.asarray(Image.open(mask_name))
                 for i in range(len(weights)):
                     weights[i] += np.count_nonzero(image == i)
-        # if subset == "Train".casefold():
-        #     weights = [0] * n_classes
-        #     self.image_names = self.
+            self.weights = weights
+            print("WEIGHTS = ", self.weights)
+        else:
+            self.image_names = self.test_image_names
+            self.mask_names = self.test_mask_names
 
     def __len__(self):
         return len(self.data_paths)
