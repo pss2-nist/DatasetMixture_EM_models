@@ -28,15 +28,38 @@ Objective:
 
 """
 import argparse
+import os
+
+from runmodels import *
 
 
-def main():
+def test_parser():
+    parser = create_parser()
+    combined_path = "/mnt/isgnas/home/pss2/data/EM-Vladar/DatadrivenEM/Combined"
+    paths = [os.path.join(combined_path, p) for p in os.listdir(combined_path) if
+             os.path.isdir(os.path.join(combined_path, p))]
+    print("PATHS:", paths)
+    for path in paths:
+        root_folder = path
+        image_input_folder = "Generated/designed"
+        mask_input_folder = "Mask/designed"
+        xPieces = 5
+        yPieces = 5
+        # tile_and_split(root_folder, image_input_folder, mask_input_folder, xPieces, yPieces)
+        run_many_models(data=root_folder, learning_rates=[1e-2], are_pretrained=[True], batchsize=100)
+
+
+def create_parser():
     parser = argparse.ArgumentParser(prog='hyperparmsearch', description='Search for optimal hyperparameters')
-    parser.add_argument('--dataset1', type=str, description="Path to dataset 1")
-    parser.add_argument('--dataset2', type=str, description="Path to dataset 2")
+    parser.add_argument('--dataset1', type=str, help="Path to dataset 1")
+    parser.add_argument('--dataset2', type=str, help="Path to dataset 2")
 
-    args, unknown = parser.parse_known_args()
+    # args, unknown = parser.parse_known_args()
+    return parser
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        test_parser()
+    except Exception as e:
+        print(e)

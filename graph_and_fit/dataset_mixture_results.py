@@ -1,3 +1,4 @@
+import argparse
 import os
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -5,8 +6,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-xaxis_key = 'checker size'
-# xaxis_key = 'dataset size (images)'
+
 
 
 def visualize(df, title="Title", metric='Dice', lrmid=False):
@@ -176,7 +176,18 @@ def read_and_plot(path, savename):
         plt.close()
 
 
-def main(): # TODO argparse
+def main():
+    parser = argparse.ArgumentParser(prog='dataset_mixture_resutls', description='Script that fuses the ROIs with BKG')
+    parser.add_argument('--xaxis_key', type=str, help='x-axis name for plot')
+    parser.add_argument('--inference_file', type=str, help='excel file containing information about synthetic inference')
+    parser.add_argument('--inference_name', type=str, help='name to use in plot for describing the data')
+    # parser.add_argument('--synthetic_inference', type=str, help='excel file containing information about synthetic inference')
+    # parser.add_argument('--output_dir', type=str, help='full path to output folder destination')
+    #
+    args, unknown = parser.parse_known_args()
+    xaxis_key = args.xaxis_key
+    read_and_plot(args.inference_file, args.inference_name)
+
     if xaxis_key == "checker size":
         synthetic_inference = "C:/Users/pss2/NetBeansProjects/stats-simulations/data/ncheck_CG1D_PS_size/infer_tile_images_cumulative_size_all.xlsx"
         synthetic_inference_orig = "C:/Users/pss2/NetBeansProjects/stats-simulations/data/ncheck_CG1D_PS_size/infer_tile_images_cumulative_orig_size_all.xlsx"
@@ -190,4 +201,5 @@ def main(): # TODO argparse
 
 
 if __name__ == "__main__":
+    xaxis_key = 'checker size'
     main()
