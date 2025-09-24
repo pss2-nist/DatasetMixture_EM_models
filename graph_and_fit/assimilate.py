@@ -169,47 +169,45 @@ def compile_folder_train(experiment_folders, model_substring):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog='assimilate',
-                                     description='Script that renames image files according to mask files')
+    parser = argparse.ArgumentParser(prog='assimilate', description='Script that renames image files according to mask files')
     parser.add_argument('--foldernames', type=str, nargs='+', help='full path of main folder folder')
     parser.add_argument('--calculation_types', type=str, nargs='+',
                         default=['inference_dds_images', 'inference_measured', 'inference_pbs_images', 'training'],
                         help='csv name. training and inference results are treated differently, list all folder name substrings. e.g. inference_opposite_evaluated')
     parser.add_argument('--model_cstring', type=str, default="pytorchOutputMtoM",
                         help='substring uniquely contained in names of all model folders')
-
     args, unknown = parser.parse_known_args()
 
     foldernames = args.foldernames
-    # model_cstring = args.substring
+    folderpath = None
 
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Synthetic_DDS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Synthetic_PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/"
-    folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/0-10_DDS-PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/1-9_DDS-PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/2-8_DDS-PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/3-7_DDS-PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/4-6_DDS-PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/5-5_DDS-PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/6-4_DDS-PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/7-3_DDS-PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/8-2_DDS-PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/9-1_DDS-PBS"
-    # folderpath = "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/10-0_DDS-PBS"
-
-    if args.foldernames is None:
-        print(f'ERROR: missing input mask folder, using{folderpath} ')
-        foldernames = [
-            f"{folderpath}",
+    # If no foldernames are provided, use a default folderpath
+    if foldernames is None:
+        # List of available default folderpaths
+        default_folderpaths = [
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/0-10_DDS-PBS",
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/1-9_DDS-PBS",
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/2-8_DDS-PBS",
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/3-7_DDS-PBS",
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/4-6_DDS-PBS",
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/5-5_DDS-PBS",
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/6-4_DDS-PBS",
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/7-3_DDS-PBS",
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/8-2_DDS-PBS",
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/9-1_DDS-PBS",
+            "C:/Users/pss2/PycharmProjects/DatadrivenEM/data/measured_SEM_images/Combined/10-0_DDS-PBS",
         ]
+        print("No --foldernames provided. Running for all default folders:")
+        foldernames = default_folderpaths
+    else:
+        folderpath = foldernames[0]
+
     model_cstring = args.model_cstring
     calculation_types = args.calculation_types
     if isinstance(calculation_types, str):
         calculation_types = [calculation_types]
 
     for calculation_type in calculation_types:
-        # for calculation_type in [None]:
         print("calculation type: ", calculation_type)
         df = None
         if (calculation_type is None) or (calculation_type == "training"):
@@ -219,7 +217,7 @@ def main():
             df = compile_folder(foldernames, model_cstring, calculation_type=calculation_type)
         if df is not None:
             df.to_excel(os.path.join(folderpath, f"{calculation_type}_dic.xlsx"))
-            # df.to_csv(os.path.join(folderpath, f"{calculation_type}_dic.csv"))
+            # df.to_csv(os.path.join(folderpath, f"{calculation_type}_dic.csv"), index=False)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,41 @@
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "pyyaml"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datasetmixture_em_models"
+dynamic = ["version", "description", "readme", "dependencies", "classifiers"]
+requires-python = ">=3.10"
+authors = [ { name = "pss2-nist", email = "pushkar.sathe@nist.gov" } ]
+license = { file = "LICENSE.md" }
+keywords = [
+    "EM",
+    "electron microscopy",
+    "denoising",
+    "deep learning",
+    "image processing",
+]
+
+[project.urls]
+Homepage = "https://github.com/pss2-nist/DatasetMixture_EM_models"
+Repository = "https://github.com/pss2-nist/DatasetMixture_EM_models"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["datasetmixture_em_models*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "datasetmixture_em_models.__version__" }
+description = { file = "DESCRIPTION.rst" }
+readme = { file = "README.md" }
+dependencies = { file = "requirements.txt" }
+classifiers = { file = "classifiers.txt" }
+
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "W", "I"] # Error, Flake8, Warnings, isort
+
+[tool.black]
+line-length = 120
+target-version = ['py310']
