@@ -1,0 +1,99 @@
+# Default Configuration for DatasetMixture EM Models
+# Override these values by:
+# 1. Loading a custom YAML file: load_config('path/to/custom_config.yaml')
+# 2. Command-line overrides: python train.py model.architecture=unet training.batch_size=32
+
+# ============================================================================
+# DATA CONFIGURATION
+# ============================================================================
+data:
+  # List of dataset paths (relative to project root or absolute)
+  dataset_paths: []
+
+  # Output directory for results
+  output_dir: output
+
+  # Directory for storing tiles during preprocessing
+  tiles_dir: tiles
+
+  # Train/val/test split ratios
+  val_split: 0.2
+  test_split: 0.1
+
+  # Data augmentation
+  augmentation_enabled: true
+
+  # DataLoader parameters
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: false
+
+# ============================================================================
+# MODEL CONFIGURATION
+# ============================================================================
+model:
+  # Architecture: deeplabv3, resnet50, mobilenetv3, lraspp, unet
+  architecture: deeplabv3
+
+  # Backbone/encoder network
+  backbone: resnet50
+
+  # Use pretrained weights
+  pretrained: true
+
+  # Number of output classes (segmentation/classification)
+  num_classes: 2
+
+  # Input channels (1 for grayscale EM, 3 for RGB)
+  input_channels: 1
+
+  # Regularization
+  dropout_rate: 0.1
+
+# ============================================================================
+# TRAINING CONFIGURATION
+# ============================================================================
+training:
+  # Training duration
+  max_epochs: 100
+
+  # Batch size for training
+  batch_size: 16
+
+  # Optimizer settings
+  optimizer: adam
+  learning_rate: 0.001
+  weight_decay: 0.0001
+
+  # Learning rate scheduler: cosine, step, exponential, none
+  lr_scheduler: cosine
+
+  # Early stopping
+  early_stopping_patience: 10
+  early_stopping_metric: val_loss
+
+  # Reproducibility
+  seed: 42
+
+  # Mixed precision training (faster, lower memory)
+  mixed_precision: false
+
+  # Gradient accumulation for larger effective batch size
+  gradient_accumulation_steps: 1
+
+  # Model checkpointing
+  checkpoint_dir: checkpoints
+  save_best_only: true
+
+# ============================================================================
+# LOGGING & DEVICE
+# ============================================================================
+
+# Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+logging_level: INFO
+
+# Log output directory (optional, logs to console if not set)
+log_dir: null
+
+# Device: auto (detect GPU), cuda, cpu
+device: auto

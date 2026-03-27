@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 name = "datasetmixture_em_models"
 dynamic = ["version", "description", "readme", "dependencies", "classifiers"]
 requires-python = ">=3.10"
-authors = [ { name = "pss2-nist", email = "pushkar.sathe@nist.gov" } ]
+authors = [{ name = "Pushkar Sathe", email = "pushkar.sathe@nist.gov" }]
 license = { file = "LICENSE.md" }
 keywords = [
     "EM",
