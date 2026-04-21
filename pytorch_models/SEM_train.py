@@ -9,8 +9,7 @@ from pathlib import Path
 from tqdm import tqdm
 from pytorch_models.metrics import *
 
-from pytorch_classification_models.gpu_utilization import write_header
-from pytorch_classification_models.gpu_utilization import record
+from datasetmixture_em_models.core.gpu import write_header, record
 from pytorch_models.datahandler import GetDataloader
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 from torchvision.models.segmentation.fcn import FCNHead

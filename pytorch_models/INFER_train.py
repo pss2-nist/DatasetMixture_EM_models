@@ -15,8 +15,7 @@ import argparse
 import torch
 from pathlib import Path
 from tqdm import tqdm
-from gpu_utilization import write_header
-from gpu_utilization import record
+from datasetmixture_em_models.core.gpu import write_header, record
 from INFER_Dataset import GetDataloader
 # TODO: auto gpu or cpu
 

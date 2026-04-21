@@ -2,21 +2,7 @@
 # NIST-developed software is expressly provided "AS IS." NIST MAKES NO WARRANTY OF ANY KIND, EXPRESS, IMPLIED, IN FACT OR ARISING BY OPERATION OF LAW, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT AND DATA ACCURACY. NIST NEITHER REPRESENTS NOR WARRANTS THAT THE OPERATION OF THE SOFTWARE WILL BE UNINTERRUPTED OR ERROR-FREE, OR THAT ANY DEFECTS WILL BE CORRECTED. NIST DOES NOT WARRANT OR MAKE ANY REPRESENTATIONS REGARDING THE USE OF THE SOFTWARE OR THE RESULTS THEREOF, INCLUDING BUT NOT LIMITED TO THE CORRECTNESS, ACCURACY, RELIABILITY, OR USEFULNESS OF THE SOFTWARE.
 # You are solely responsible for determining the appropriateness of using and distributing the software and you assume all risks associated with its use, including but not limited to the risks and costs of program errors, compliance with applicable laws, damage to or loss of data, programs or equipment, and the unavailability or interruption of operation. This software is not intended to be used in any situation where a failure could cause risk of injury or damage to property. The software developed by NIST employees is not subject to copyright protection within the United States.
 
-import os
-import numpy as np
-
-import torch
-import torch.utils.data
-
-import random
-import lmdb
-from torch.utils.data import WeightedRandomSampler
-
-from isg_ai_pb2 import ImageMaskPair
-
-from PIL import Image
-import torchvision
-from torchvision import transforms
+from datasetmixture_em_models.core.datasets import zscore_normalize
 class UnetDataset(torch.utils.data.Dataset):
     """
     data set for UNet, image-mask pair_param
@@ -89,20 +75,6 @@ class UnetDataset(torch.utils.data.Dataset):
     def format_image(x):
         # reshape into tensor (CHW)
         x = np.transpose(x, [2, 0, 1])
-        return x
-
-    @staticmethod
-    def zscore_normalize(x):
-        x = x.astype(np.float32)
-
-        std = np.std(x)
-        mv = np.mean(x)
-        if std <= 1.0:
-            # normalize (but dont divide by zero)
-            x = (x - mv)
-        else:
-            # z-score normalize
-            x = (x - mv) / std
         return x
 
     def __getitem__(self, index):

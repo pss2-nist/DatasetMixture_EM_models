@@ -4,8 +4,7 @@
 
 import sys
 
-from gpu_utilization import record
-from gpu_utilization import write_header
+from datasetmixture_em_models.core.gpu import record, write_header
 
 if sys.version_info[0] < 3:
     print('Python3 required')

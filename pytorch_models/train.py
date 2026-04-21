@@ -20,8 +20,7 @@ from pathlib import Path
 from sklearn import metrics
 from tqdm import tqdm
 import datahandler
-from gpu_utilization import write_header
-from gpu_utilization import record
+from datasetmixture_em_models.core.gpu import write_header, record
 
 from datahandler import GetDataloader
 from sklearn.metrics import f1_score, roc_auc_score
