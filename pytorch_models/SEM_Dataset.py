@@ -1,5 +1,4 @@
 import torch.utils.data
-from skimage.io import imread
 from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import transforms
 from pathlib import Path
@@ -10,34 +9,7 @@ from torchvision.datasets.vision import VisionDataset
 import skimage
 import skimage.io
 from sklearn.utils.class_weight import compute_class_weight
-
-
-def _get_image_from_path(image_path, astype=np.float32):
-    _img = imread(image_path)
-    if astype is not None:
-        _img = _img.astype(astype)
-    return _img
-
-
-def return_images_from_paths(image_paths, astype=np.float32):
-    """
-
-    :param astype: convert image format. (Not recommended as this can cause many errors down the line)
-    :param image_paths:
-    :return:
-    """
-
-    if isinstance(image_paths, str):
-        return _get_image_from_path(image_paths)
-    else:
-        # print(image_paths)
-        assert isinstance(image_paths, (np.ndarray, list))
-        image_list = []
-        for image_path in image_paths:
-            img = _get_image_from_path(image_path, astype)
-            image_list.append(img)
-        image_list = np.asarray(image_list)
-        return image_list
+from datasetmixture_em_models.core.datasets import _get_image_from_path, return_images_from_paths
 
 
 class SEMDataset(VisionDataset):
@@ -77,11 +49,11 @@ class SEMDataset(VisionDataset):
             self.mask_names = self.test_mask_names
 
     def __len__(self):
-        return len(self.data_paths)
+        return len(self.image_names)
 
     def __getitem__(self, index):
-        image_path = self.data_paths[index]
-        mask_path = self.masks[index]
+        image_path = self.image_names[index]
+        mask_path = self.mask_names[index]
         image = _get_image_from_path(image_path)
         mask = _get_image_from_path(mask_path)
         if self.transform:

@@ -1,4 +1,3 @@
-from skimage.io import imread
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from pathlib import Path
@@ -9,34 +8,7 @@ from torchvision.datasets.vision import VisionDataset
 import skimage
 import skimage.io
 import torch
-
-
-def _get_image_from_path(image_path, astype=np.float32):
-    _img = imread(image_path)
-    if astype is not None:
-        _img = _img.astype(astype)
-    return _img
-
-
-def return_images_from_paths(image_paths, astype=np.float32):
-    """
-
-    :param astype: convert image format. (Not recommended as this can cause many errors down the line)
-    :param image_paths:
-    :return:
-    """
-
-    if isinstance(image_paths, str):
-        return _get_image_from_path(image_paths)
-    else:
-        # print(image_paths)
-        assert isinstance(image_paths, (np.ndarray, list))
-        image_list = []
-        for image_path in image_paths:
-            img = _get_image_from_path(image_path, astype)
-            image_list.append(img)
-        image_list = np.asarray(image_list)
-        return image_list
+from datasetmixture_em_models.core.datasets import _get_image_from_path, return_images_from_paths
 
 
 class INFERSegmentationDataset(VisionDataset):
